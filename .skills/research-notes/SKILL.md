@@ -37,9 +37,38 @@ The notebooklm skill is the authoritative reference for all CLI behavior. This s
 
 ## Section 1: Notebook Management
 
-### Default behavior
+### Context detection
 
-Use the `research-assistant` notebook for all sessions unless the user explicitly requests otherwise.
+Determine which notebook strategy to use:
+
+1. **Plan context** (plan mode is active, or the user references an active plan) → go to [Plan notebook](#plan-notebook)
+2. **Standalone research** (no plan involved) → go to [Standalone notebook](#standalone-notebook)
+3. **User explicitly names a notebook** → go to [Explicit new notebook](#explicit-new-notebook)
+
+### Plan notebook
+
+When research is triggered during a plan, create a dedicated notebook scoped to that plan. This keeps sources isolated per plan and allows cleanup when the plan completes.
+
+1. **Derive the notebook name:** `plan-<slugified-plan-topic>` (e.g., plan topic "Auth Middleware Rewrite" → `plan-auth-middleware-rewrite`)
+2. **Check for existing notebook:**
+   ```bash
+   notebooklm list --json
+   ```
+   Search the `notebooks` array for a title matching `plan-<slug>` (case-insensitive).
+3. **Found:** Run `notebooklm use <id>` and store as `$NOTEBOOK_ID`.
+4. **Not found:** Create it:
+   ```bash
+   notebooklm create "plan-<slug>" --json
+   ```
+   Parse `id` → store as `$NOTEBOOK_ID`. Create local folder `~/Work/NotebookLM/plan-<slug>/`.
+5. **Update index:** Append to `~/Work/NotebookLM/index.md`:
+   ```
+   | plan-<slug> | <id> | <YYYY-MM-DD> | active |
+   ```
+
+### Standalone notebook
+
+When research is NOT part of a plan, use the persistent `research-assistant` notebook.
 
 **Resolve the notebook:**
 ```bash
@@ -54,6 +83,8 @@ Parse the `notebooks` array. Search for `"title": "research-assistant"` (case-in
   ```
   Parse `id` → store as `$NOTEBOOK_ID`. Create local folder `~/Work/NotebookLM/research-assistant/`.
 
+No lifecycle cleanup applies to the standalone notebook.
+
 ### Explicit new notebook
 
 If the user says "create a new notebook" or names a specific notebook:
@@ -65,17 +96,30 @@ notebooklm create "<name>" --json
 - Create local folder: `~/Work/NotebookLM/<slugified-name>/`
 - Append to `~/Work/NotebookLM/index.md`:
   ```
-  | <name> | <id> | <YYYY-MM-DD> |
+  | <name> | <id> | <YYYY-MM-DD> | active |
   ```
+
+### Notebook cleanup
+
+When a plan's status transitions to **Completed**:
+
+1. Look up the plan's notebook ID from `~/Work/NotebookLM/index.md` — match by `plan-<slug>` name
+2. Delete the remote notebook:
+   ```bash
+   notebooklm delete <id>
+   ```
+3. Update the notebook's row in `index.md`: change Status from `active` to `deleted`
+4. **Keep all local files** — the markdown notes in `~/Work/NotebookLM/plan-<slug>/` are the permanent research record
+5. If the notebook is not found (already deleted), skip silently
 
 ### Local folder structure
 
 ```
 ~/Work/NotebookLM/
-├── index.md                          # All notebooks: name, ID, created date
+├── index.md                          # All notebooks: name, ID, created date, status
 ├── research-assistant/
 │   └── <YYYY-MM-DD>-<slug>.md        # One file per research session
-└── <other-notebook-name>/
+└── plan-<topic-slug>/
     └── <YYYY-MM-DD>-<slug>.md
 ```
 
@@ -83,9 +127,11 @@ notebooklm create "<name>" --json
 ```markdown
 # NotebookLM Index
 
-| Notebook | ID | Created |
-|----------|----|---------|
+| Notebook | ID | Created | Status |
+|----------|----|---------|--------|
 ```
+
+**Migration:** If the existing `index.md` has no Status column, add it and default all existing rows to `active`.
 
 ---
 
