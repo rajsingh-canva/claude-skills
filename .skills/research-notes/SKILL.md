@@ -180,6 +180,43 @@ For each major section from Step 1:
 notebooklm ask "For the section '<section name>', explain the key ideas, arguments, and details in depth." --notebook $NOTEBOOK_ID --json
 ```
 
+**Step 2a — Content type detection:**
+```bash
+notebooklm ask "Classify this content into exactly ONE of these types: (1) tutorial — teaches how to do something step-by-step, (2) technical-docs — API reference, library docs, or specification, (3) opinion — analysis, review, or commentary with arguments, (4) news — announcement, release notes, or industry update, (5) interview — conversation, podcast, or Q&A with identifiable speakers, (6) general — none of the above. Answer with the type name and a one-sentence description of what the content covers." --notebook $NOTEBOOK_ID --json
+```
+Parse the content type from the response. Run the matching content-type queries below, then continue to Step 3.
+
+**Step 2b — Tutorial content** (type = tutorial):
+```bash
+notebooklm ask "What specific setup steps, installations, configurations, or prerequisites does the content show? Include exact commands, file paths, settings, templates, code snippets, or software versions mentioned. List them as numbered steps." --notebook $NOTEBOOK_ID --json
+```
+```bash
+notebooklm ask "What tips, tricks, best practices, common mistakes, or troubleshooting guidance does the content provide? What does the creator warn viewers NOT to do or to watch out for?" --notebook $NOTEBOOK_ID --json
+```
+
+**Step 2c — Technical documentation** (type = technical-docs):
+```bash
+notebooklm ask "What are the key APIs, functions, parameters, or configuration options documented? Include exact signatures, required vs optional parameters, default values, and return types where available." --notebook $NOTEBOOK_ID --json
+```
+```bash
+notebooklm ask "What code examples, usage patterns, or integration snippets does the documentation provide? Include any version requirements, compatibility notes, or deprecation warnings." --notebook $NOTEBOOK_ID --json
+```
+
+**Step 2d — Opinion/analysis** (type = opinion):
+```bash
+notebooklm ask "What are the author's key arguments or positions? For each, what evidence or reasoning do they provide? Are there any counterarguments or limitations they acknowledge?" --notebook $NOTEBOOK_ID --json
+```
+
+**Step 2e — News/announcements** (type = news):
+```bash
+notebooklm ask "What specifically changed or was announced? What is the timeline or release date? Who is affected and what is the expected impact? Are there any migration steps or action items mentioned?" --notebook $NOTEBOOK_ID --json
+```
+
+**Step 2f — Interview/podcast** (type = interview):
+```bash
+notebooklm ask "Who are the speakers and what are their roles or backgrounds? What are the most notable quotes or claims from each speaker? Where do speakers agree or disagree?" --notebook $NOTEBOOK_ID --json
+```
+
 **Step 3 — TLDR:**
 ```bash
 notebooklm ask "In 150 words or fewer, summarize the overall purpose and key takeaway of all the source content. Write in plain prose." --notebook $NOTEBOOK_ID --json
@@ -221,12 +258,60 @@ Compile the responses from Section 3 into a single markdown document:
 {150-word max plain prose. Must address: what is this content about, the key takeaway, and who should engage with it.}
 ```
 
+### Content-type sections
+
+Based on the content type detected in Step 2a, add the matching sections after the main content sections and before TLDR. These do not count toward the 3–7 H2 limit.
+
+**Tutorial** (type = tutorial):
+```markdown
+## Setup & Configuration
+
+{Numbered setup steps, commands, prerequisites from Step 2b. Preserve exact commands, file paths, and code snippets verbatim — do not paraphrase technical instructions.}
+
+## Tips, Tricks & Common Pitfalls
+
+{Practical advice, warnings, and troubleshooting from Step 2b second query. Use bullet points. Preserve exact technical details.}
+```
+
+**Technical documentation** (type = technical-docs):
+```markdown
+## API Reference
+
+{Key APIs, functions, parameters, configuration options from Step 2c. Use tables or definition lists for parameters. Preserve exact signatures and types.}
+
+## Code Examples
+
+{Usage patterns, integration snippets, compatibility notes from Step 2c. Use fenced code blocks with language tags.}
+```
+
+**Opinion/analysis** (type = opinion):
+```markdown
+## Key Arguments & Evidence
+
+{Author's positions with supporting evidence from Step 2d. Use a structured format: argument → evidence → limitations.}
+```
+
+**News/announcements** (type = news):
+```markdown
+## What Changed
+
+{Specific changes, timeline, impact, and action items from Step 2e. Use bullet points for clarity.}
+```
+
+**Interview/podcast** (type = interview):
+```markdown
+## Speaker Perspectives
+
+{Speaker backgrounds, notable quotes, areas of agreement/disagreement from Step 2f. Attribute quotes to specific speakers.}
+```
+
 ### Writing rules
 
 - Synthesize and paraphrase NotebookLM's responses — do not paste them verbatim
+- **Exception:** In content-type sections, preserve exact commands, code, file paths, API signatures, quotes, and configuration values verbatim
 - Third person, present tense ("The speaker argues...", "The article examines...")
 - Preserve technical terms and proper nouns exactly
-- 3–7 H2 sections per document
+- 3–7 H2 sections per document (content-type sections do not count toward this limit)
 - Use H3 only for genuinely distinct sub-topics within a section
 
 ---
